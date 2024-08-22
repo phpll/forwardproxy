@@ -1,87 +1,67 @@
-# Secure forward proxy for the Caddy web server
+Caddy Web 服务器的安全正向代理
+该包注册了http.handlers.forward_proxy模块，它充当访问远程网络的 HTTPS 代理。
 
-This package registers the `http.handlers.forward_proxy` module, which acts as an HTTPS proxy for accessing remote networks.
+⚠️实验性的！
+此模块为实验性模块。我们需要更多用户来测试此模块是否存在错误和弱点，然后我们才会推荐在受监控的网络或有主动审查的地区使用该模块。在个人安全、自由或隐私受到威胁的情况下，请勿依赖此代码。
 
-## :warning: Experimental!
+您可以通过以下方式提供帮助：
 
-This module is EXPERIMENTAL. We need more users to test this module for bugs and weaknesses before we recommend its use from within surveilled networks or regions with active censorship. Do not rely on this code in situations where personal safety, freedom, or privacy are at risk.
+安全部署此模块
+试图打破它
+为这个 repo 中的代码和测试做出贡献，使其变得更好
+我们也在寻求有经验的维护人员，他们对这些技术有经验并且有兴趣继续开发。
 
-**You can help by:**
+预计会发生重大变化。
 
-- Safely deploying this module
-- Trying to break it
-- Contributing to the code and tests in this repo to make it better
+特征
+HTTP/1.1、HTTP/2 和 HTTP/3 支持
+验证
+访问控制列表
+可选探头电阻
+PAC 文件
+介绍
+此 Caddy 模块允许您将 Web 服务器用作代理服务器，可由众多 HTTP 客户端（例如操作系统、Web 浏览器、移动设备和应用程序）配置。但是，每个客户端的功能集差异很大，其正确性和安全性保证也各不相同。您必须了解每个客户端各自的弱点或缺点。
 
-We are also seeking experienced maintainers who have experience with these kinds of technologies and who are interested in continuing its development.
+快速启动
+首先，您必须知道如何使用 Caddy。
 
-**Expect breaking changes.**
+用这个插件构建 Caddy。你可以从Caddy 的下载页面添加它，也可以用xcaddy自己构建它：
 
-## Features
-
-- HTTP/1.1, HTTP/2, and HTTP/3 support
-- Authentication
-- Access control lists
-- Optional probe resistance
-- PAC file
-
-
-## Introduction
-
-This Caddy module allows you to use your web server as a proxy server, configurable by numerous HTTP clients such as operating systems, web browsers, mobile devices, and apps. However, the feature set of each client varies widely, as does their correctness and security guarantees. You will have to be aware of each clients' individual weaknesses or shortcomings.
-
-
-## Quick start
-
-First, you will have to know [how to use Caddy](https://caddyserver.com/docs/getting-started).
-
-Build Caddy with this plugin. You can add it from [Caddy's download page](https://caddyserver.com/download) or build it yourself with [xcaddy](https://github.com/caddyserver/xcaddy):
-
-```
 $ xcaddy build --with github.com/caddyserver/forwardproxy
-```
+大多数人更喜欢使用Caddyfile进行配置。您可以像这样建立一个简单、开放的未经身份验证的正向代理：
 
-Most people prefer the [Caddyfile](https://caddyserver.com/docs/caddyfile) for configuration. You can stand up a simple, wide-open unauthenticated forward proxy like this:
-
-```
 example.com
 route {
 	# UNAUTHENTICATED! USE ONLY FOR TESTING
 	forward_proxy
 }
-```
+（显然，替换example.com为指向您机器的域名。）
 
-(Obviously, replace `example.com` with your domain name which is pointed at your machine.)
+由于forward_proxy它不是标准指令，因此它相对于其他处理程序指令的顺序尚未定义，因此我们将其放在块内route。您也可以这样做：
 
-Because `forward_proxy` is not a standard directive, its ordering relative to other handler directives is not defined, so we put it inside a `route` block. You can alternatively do something like this:
-
-```
 {
 	order forward_proxy before file_server
 }
 example.com
 # UNAUTHENTICATED! USE ONLY FOR TESTING
 forward_proxy
-```
+全局定义其位置；那么您不需要route块。正确的顺序由您决定，并取决于您的配置。
 
-to define its position globally; then you don't need `route` blocks. The correct order is up to you and depends on your config.
+该插件使Caddy可以充当正向代理，支持 HTTP/3、HTTP/2 和 HTTP/1.1 请求。HTTP/3 和 HTTP/2 通常会因多路复用而提高性能。
 
-This plugin enables [Caddy](https://caddyserver.com) to act as a forward proxy, with support for HTTP/3, HTTP/2, and HTTP/1.1 requests. HTTP/3 and HTTP/2 will usually improve performance due to multiplexing.
+正向代理插件包括访问控制列表和身份验证等常用功能，以及一些有助于保护安全和隐私的独特功能。正向代理的默认配置符合现有的 HTTP 标准，但某些功能会强制插件表现出非标准但不破坏的行为以保护隐私。
 
-Forward proxy plugin includes common features like Access Control Lists and authentication, as well as some unique features to assist with security and privacy. Default configuration of forward proxy is compliant with existing HTTP standards, but some features force plugin to exhibit non-standard but non-breaking behavior to preserve privacy.
+探测阻力 — 此插件的标志性功能之一 — 试图隐藏您的 Web 服务器也是正向代理的事实，帮助代理保持低调。最终，forwardproxy 插件实现了一个简单的反向代理（upstream https://user:password@next-hop.com在 Caddyfile 中），以便用户在需要反向代理时（例如，构建代理链）可以利用它probe_resistance。反向代理实现将保持简单，如果您需要强大的反向代理，请查看 Caddy 的标准proxy指令。
 
-Probing resistance—one of the signature features of this plugin—attempts to hide the fact that your webserver is also a forward proxy, helping the proxy to stay under the radar. Eventually, forwardproxy plugin implemented a simple *reverse* proxy (`upstream https://user:password@next-hop.com` in Caddyfile) just so users may take advantage of `probe_resistance` when they need a reverse proxy (for example, to build a chain of proxies). Reverse proxy implementation will stay simple, and if you need a powerful reverse proxy, look into Caddy's standard `proxy` directive.
+有关功能及其用法的完整列表，请参阅 Caddyfile 语法：
 
-For a complete list of features and their usage, see Caddyfile syntax:
+Caddyfile 语法（服务器配置）
+启用无需身份验证的正向代理的最简单方法是将forward_proxy指令包含在 Caddyfile 中。但是，这允许任何人将您的服务器用作代理，这可能不是理想的选择。
 
-## Caddyfile Syntax (Server Configuration)
+该forward_proxy指令没有默认顺序，必须在route指令内使用以明确指定其评估顺序。在 Caddyfile 中，地址必须以 开头，:443才能forward_proxy适用于所有来源的代理请求。
 
-The simplest way to enable the forward proxy without authentication just include the `forward_proxy` directive in your Caddyfile. However, this allows anyone to use your server as a proxy, which might not be desirable.
+以下是所有属性的使用示例（请注意，语法可能会发生变化）：
 
-The `forward_proxy` directive has no default order and must be used within a `route` directive to explicitly specify its order of evaluation. In the Caddyfile the addresses must start with `:443` for the `forward_proxy` to work for proxy requests of all origins.
-
-Here's an example of all properties in use (note that the syntax is subject to change):
-
-```
 :443, example.com
 route {
 	forward_proxy {
@@ -106,144 +86,116 @@ route {
 	}
 	file_server
 }
-```
+（方括号[ ]表示您应该替换的值；实际上不包括括号。）
 
-(The square brackets `[ ]` indicate values you should replace; do not actually include the brackets.)
+安全
+basic_auth [user] [password]
+设置基本 HTTP 身份验证凭据。此属性可以重复多次。请注意，这与 Caddy 的内置basic_auth指令不同。在输入凭据之前，请务必检查请求凭据的站点的名称。
 
-### Security
+默认值：无需身份验证。
 
-- `basic_auth [user] [password]`  
-  Sets basic HTTP auth credentials. This property may be repeated multiple times. Note that this is different from Caddy's built-in `basic_auth` directive. BE SURE TO CHECK THE NAME OF THE SITE THAT IS REQUESTING CREDENTIALS BEFORE YOU ENTER THEM.
+probe_resistance [secretlink.tld]
+尝试隐藏网站是正向代理的事实。如果凭证不正确或缺失，代理将不再响应“407 需要代理身份验证”，并将尝试模仿通用 Caddy Web 服务器，就好像未启用正向代理一样。
 
-  Default: no authentication required.
-- `probe_resistance [secretlink.tld]`  
-  Attempts to hide the fact that the site is a forward proxy.
-  Proxy will no longer respond with "407 Proxy Authentication Required" if credentials are incorrect or absent,
-  and will attempt to mimic a generic Caddy web server as if the forward proxy is not enabled.
+basic_auth只有在设置了 的情况下，探测阻力才会起作用（并且有意义） 。要使用具有探测阻力的代理，请将您的basic_auth凭据提供给您的客户端配置。如果您的代理客户端（浏览器、操作系统、浏览器扩展等）允许您预先配置凭据，并预先发送凭据，则您不需要秘密链接。
 
-  Probing resistance works (and makes sense) only if `basic_auth` is set up.
-  To use your proxy with probe resistance, supply your `basic_auth` credentials to your client configuration.
-  If your proxy client(browser, operating system, browser extension, etc)
-  allows you to preconfigure credentials, and sends credentials preemptively, you do not need secret link.
+如果您的代理客户端不主动发送凭证，您将不得不访问浏览器中的秘密链接来触发身份验证。确保指定的域名是可访问的、不包含大写字符、不以点开头等。只有此地址才会触发 407 响应，提示浏览器向用户请求凭证并在会话的剩余时间内缓存它们。
 
-  If your proxy client does not preemptively send credentials, you will have to visit your secret link in your browser to trigger the authentication.
-  Make sure that specified domain name is visitable, does not contain uppercase characters, does not start with dot, etc.
-  Only this address will trigger a 407 response, prompting browsers to request credentials from user and cache them for the rest of the session.
+默认值：无探测电阻。
 
-  Default: no probing resistance.
+隐私
+hide_ip
+如果设置，forwardproxy 将不会将用户的 IP 添加到“Forwarded：”标头。
 
-### Privacy
+警告：您的浏览器中还存在其他您可能需要消除的侧信道，例如 WebRTC，请在此处查看如何禁用它。
 
-- `hide_ip`  
-  If set, forwardproxy will not add user's IP to "Forwarded:" header.
-  
-  WARNING: there are other side-channels in your browser, that you might want to eliminate, such as WebRTC, see [here](https://www.ivpn.net/knowledgebase/158/My-IP-is-being-leaked-by-WebRTC-How-do-I-disable-it.html) how to disable it.
-  
-  Default: no hiding; `Forwarded: for="useraddress"` will be sent out.
-- `hide_via`  
-  If set, forwardproxy will not add Via header, and prevents simple way to detect proxy usage.
+默认：不隐藏；Forwarded: for="useraddress"将被发送出去。
 
-  WARNING: there are other side-channels to determine this.
+hide_via
+如果设置，forwardproxy 将不会添加 Via 标头，并阻止以简单方式检测代理的使用情况。
 
-  Default: no hiding; Header in form of `Via: 2.0 caddy` will be sent out.
+警告：还有其他侧通道可以确定这一点。
 
-### Access Control
+默认：不隐藏；以 形式的标头Via: 2.0 caddy将被发送出去。
 
-- `ports [integer] [integer]...`  
-  Specifies ports forwardproxy will whitelist for all requests. Other ports will be forbidden.
+访问控制
+ports [integer] [integer]...
+指定 forwardproxy 将为所有请求列入白名单的端口。其他端口将被禁止。
 
-  Default: no restrictions.
--     acl {  
-    	acl_directive  
-    	...  
-    	acl_directive  
-      }
-  Specifies **order** and rules for allowed destination IP networks, IP addresses and hostnames.
-  The hostname in each forwardproxy request will be resolved to an IP address,
-  and caddy will check the IP address and hostname against the directives in order until a directive matches the request.
-  
-  `acl_directive` may be:  
-    - `allow [ip or subnet or hostname] [ip or subnet or hostname]...`
-    - `allow_file /path/to/whitelist.txt`
-    - `deny [ip or subnet or hostname] [ip or subnet or hostname]...`
-    - `deny_file /path/to/blacklist.txt`
-  
-  If you don't want unmatched requests to be subject to the default policy, you could finish
-  your acl rules with one of the following to specify action on unmatched requests:
-    - `allow all`
-    - `deny all`
+默认：无限制。
 
-  For `hostname`, you can specify `*.` as a prefix to match domain and subdomains. For example,
-  `*.caddyserver.com` will match `caddyserver.com`, `subdomain.caddyserver.com`, but not `fakecaddyserver.com`.
-  Note that hostname rules, matched early in the chain, will override later IP rules,
-  so it is advised to put IP rules first, unless domains are highly trusted and should override the
-  IP rules. Also note that domain-based blacklists are easily circumventable by directly specifying the IP.
-  
-  For `allow_file`/`deny_file` directives, syntax is the same, and each entry must be separated by newline.
-  
-  This policy applies to all requests except requests to the proxy's own domain and port.
-  Whitelisting/blacklisting of ports on per-host/IP basis is not supported.
+acl {  
+  acl_directive  
+  ...  
+  acl_directive  
+}
+指定允许的目标 IP 网络、IP 地址和主机名的顺序和规则。每个转发代理请求中的主机名将解析为 IP 地址，caddy 将按顺序根据指令检查 IP 地址和主机名，直到指令与请求匹配。
 
-  Default policy:
+acl_directive或许：
 
-  ```
-  acl {  
-  	deny 10.0.0.0/8 127.0.0.0/8 172.16.0.0/12 192.168.0.0/16 ::1/128 fe80::/10  
-  	allow all  
-  }
-  ```
-  
-  Default deny rules intend to prohibit access to localhost and local networks and may be expanded in future.
+allow [ip or subnet or hostname] [ip or subnet or hostname]...
+allow_file /path/to/whitelist.txt
+deny [ip or subnet or hostname] [ip or subnet or hostname]...
+deny_file /path/to/blacklist.txt
+如果你不希望不匹配的请求受到默认策略的约束，你可以在 acl 规则中添加以下一项来指定对不匹配的请求采取的操作：
 
-### Timeouts
+allow all
+deny all
+对于hostname，您可以指定*.为前缀以匹配域和子域。例如， *.caddyserver.com将匹配caddyserver.com、subdomain.caddyserver.com，但不匹配fakecaddyserver.com。请注意，在链中早期匹配的主机名规则将覆盖后面的 IP 规则，因此建议将 IP 规则放在首位，除非域是高度可信的并且应该覆盖 IP 规则。另请注意，通过直接指定 IP，可以轻松绕过基于域的黑名单。
 
-- `dial_timeout [integer]`  
-  Sets timeout (in seconds) for establishing TCP connection to target website. Affects all requests.
+对于allow_file/deny_file指令，语法是相同的，并且每个条目必须用换行符分隔。
 
-  Default: 20 seconds.
+此策略适用于除代理自身域和端口的请求之外的所有请求。不支持按主机/IP 将端口列入白名单/黑名单。
 
-### Other
+默认策略：
 
-- `serve_pac [/path.pac]`  
-  Generate (in-memory) and serve a [Proxy Auto-Config](https://en.wikipedia.org/wiki/Proxy_auto-config) file on given path. If no path is provided, the PAC file will be served at `/proxy.pac`. NOTE: If you enable probe_resistance, your PAC file should also be served at a secret location; serving it at a predictable path can easily defeat probe resistance.
+acl {  
+	deny 10.0.0.0/8 127.0.0.0/8 172.16.0.0/12 192.168.0.0/16 ::1/128 fe80::/10  
+	allow all  
+}
+默认拒绝规则旨在禁止访问本地主机和本地网络，并且将来可能会扩展。
 
-  Default: no PAC file will be generated or served by Caddy (you still can manually create and serve proxy.pac like a regular file).
-- `upstream [https://username:password@upstreamproxy.site:443]`  
-  Sets upstream proxy to route all forwardproxy requests through it.
-  This setting does not affect non-forwardproxy requests nor requests with wrong credentials.
-  Upstream is incompatible with `acl` and `ports` subdirectives.
+超时
+dial_timeout [integer]
+设置与目标网站建立 TCP 连接的超时时间（以秒为单位）。影响所有请求。
 
-  Supported schemes to remote host: https.
+默认值：20 秒。
 
-  Supported schemes to localhost: socks5, http, https (certificate check is ignored).
+其他
+serve_pac [/path.pac]
+生成（内存中）并在给定路径上提供代理自动配置文件。如果未提供路径，PAC 文件将在 处提供/proxy.pac。注意：如果启用了探测阻力，您的 PAC 文件也应在秘密位置提供；在可预测的路径上提供该文件可以轻松击败探测阻力。
 
-  Default: no upstream proxy.
+默认值：Caddy 不会生成或提供任何 PAC 文件（您仍然可以像常规文件一样手动创建和提供 proxy.pac）。
 
-## Get forwardproxy
-### Download prebuilt binary
-Binaries are at https://caddyserver.com/download  
-Don't forget to add `http.forwardproxy` plugin.
+upstream [https://username:password@upstreamproxy.site:443]
+设置上游代理以通过它路由所有转发代理请求。此设置不会影响非转发代理请求或具有错误凭据的请求。上游与acl和ports子指令不兼容。
 
-### Build from source
+支持的远程主机方案：https。
 
-0. Install latest Golang 1.20 or above and set `export GO111MODULE=on`
-1. `go install github.com/caddyserver/forwardproxy/cmd/caddy@latest`  
-   Built `caddy` binary will be stored in $GOPATH/bin.  
+支持的本地主机方案：socks5、http、https（忽略证书检查）。
 
-## Client Configuration
+默认值：无上游代理。
 
-Please be aware that client support varies widely, and there are edge cases where clients may not use the proxy when it should or could. It's up to you to be aware of these limitations.
+获取转发代理
+下载预构建的二进制文件
+二进制文件位于https://caddyserver.com/download
+不要忘记添加http.forwardproxy插件。
 
-The basic configuration is simply to use your site address and port (usually for all protocols - HTTP, HTTPS, etc). You can also specify the .pac file if you enabled that.
+从源代码构建
+安装最新的 Golang 1.20 或更高版本并设置export GO111MODULE=on
+go install github.com/caddyserver/forwardproxy/cmd/caddy@latest
+构建的caddy二进制文件将存储在 $GOPATH/bin 中。
+客户端配置
+请注意，客户端支持存在很大差异，并且存在客户端可能不使用代理的极端情况（当代理应该或可以使用时）。您需要了解这些限制。
 
-Read [this blog post](https://sfrolov.io/2017/08/secure-web-proxy-client-en) about how to configure your specific client.
+基本配置只是使用您的站点地址和端口（通常适用于所有协议 - HTTP、HTTPS 等）。如果启用了 .pac 文件，您还可以指定该文件。
 
-## License
+阅读此博客文章，了解如何配置特定客户端。
 
-Licensed under the [Apache License](LICENSE)
+执照
+根据Apache 许可证授权
 
-## Disclaimers
+免责声明
+使用风险自负。本软件按原样提供。使用本软件即表示您同意并声明，本软件的作者、维护者和贡献者对您可能遇到的任何风险、费用或问题不承担任何责任。考虑您的威胁模型并保持警惕。如果您发现缺陷或错误，请提交补丁并帮助改进！
 
-USE AT YOUR OWN RISK. THIS IS DELIVERED AS-IS. By using this software, you agree and assert that authors, maintainers, and contributors of this software are not responsible or liable for any risks, costs, or problems you may encounter. Consider your threat model and be smart. If you find a flaw or bug, please submit a patch and help make things better!
-
-Initial version of this plugin was developed by Google. This is not an official Google product.
+此插件的初始版本由 Google 开发。这不是 Google 官方产品。
